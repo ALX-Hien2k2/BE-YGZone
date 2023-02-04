@@ -10,12 +10,14 @@ const {
 } = require("./services/DatabaseServices");
 const Collections = require("./services/Collections");
 
-const rootRoute = require('./routes/rootRoute');
+const rootRouter = require('./routes/rootRouter');
 
-app.get("/", (req, res) => res.send("Hello! This is the root route"));
+app.get("/", (req, res) => res.send("Hello! This is the rootRouter"));
 
-app.use('/api', rootRoute);
+// APIs
+app.use('/api', rootRouter);
 
+// Database initiation
 createCollectionDataBase(new Collections().getListCollections())
   .then((status) => {
     if (status) {
