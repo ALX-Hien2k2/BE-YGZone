@@ -1,38 +1,31 @@
 const express = require('express');
-require('dotenv').config()
-const app = express();
-const port = process.env.SERVER_PORT;
+const dotenv = require('dotenv');
+const connectToDatabase = require('./config/database');
+const cors = require("cors");
 
-// Database
-const {
-  connectToMongoDb,
-  createCollectionDataBase,
-} = require("./services/DatabaseServices");
-const Collections = require("./services/Collections");
+const app = express();
+// Setup .env
+dotenv.config();
+
+const PORT = process.env.SERVER_PORT;
 
 const rootRouter = require('./routes/rootRouter');
 
-app.get("/", (req, res) => res.send("Hello! This is the rootRouter"));
+// Use express middlewares
+app.use(cors());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // APIs
 app.use('/api', rootRouter);
 
-// Database initiation
-createCollectionDataBase(new Collections().getListCollections())
-  .then((status) => {
-    if (status) {
-      connectToMongoDb(new Collections().getListCollections())
-        .then(() => {
-          app.listen(port, () =>
-            console.log(`Server started onn port ${port}`)
-          );
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    } else {
-      console.log("Create Collection Failed");
-      process.exit(1);
-    }
-  })
-  .catch((err) => { });
+// Test API call
+app.get("/", (req, res) => res.send("Hello! This is the rootRouter"));
+
+// Connect to database
+connectToDatabase()
+    .then(() => {
+        app.listen(PORT, () =>
+            console.log(`Server started onn port ${PORT}`)
+        );
+    });
