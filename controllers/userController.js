@@ -1,7 +1,8 @@
-const { registerValidator, signInValidator } = require("../middlewares/auth");
+const { registerValidator, signInValidator } = require("../validations/auth");
 const { addOne, findOne } = require("../services/DatabaseServices");
 const User = require("../models/user");
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // const getUserDetails = async (user_id) => {
 //   const promise = new Promise(async (resolve, reject) => {
@@ -91,16 +92,20 @@ const signUp = async (newAccount) => {
           bank_account_number: newAccount.bank_account_number || "",
         });
 
-        // const newUser = await User.create({
-        //   email: newAccount.email,
-        //   password: hash,
-        //   fullname: newAccount.fullname,
-        //   phoneNumber: newAccount.phoneNumber,
-        //   userType: newAccount.userType,
-        //   avatar: newAccount.avatar || "",
-        //   address: newAccount.address || "",
-        //   bank_account_number: newAccount.bank_account_number || "",
-        // });
+        console.log("New user:", newUser);
+
+        // Create token
+        const token = jwt.sign(
+          { id: newUser._id, email: newUser.email },
+          process.env.TOKEN_SECRET,
+          {
+            expiresIn: "30s",
+          }
+        );
+
+        newUser.token = token;
+
+        console.log("New user:", newUser);
 
         // Return new user's info
         console.log("Sign up successfully!")
@@ -156,6 +161,18 @@ const signIn = async (signInAccount) => {
             });
           } else {
             console.log("Sign in successfully!")
+
+            // Create token
+            const token = jwt.sign(
+              { id: user._id, email: user.email },
+              process.env.TOKEN_SECRET,
+              {
+                expiresIn: "30s",
+              }
+            );
+
+            user.token = token;
+
             resolve(user);
           }
         }

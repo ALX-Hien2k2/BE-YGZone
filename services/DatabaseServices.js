@@ -5,7 +5,7 @@ const addOne = async (schema, obj) => {
     return new Promise(async (resolve, reject) => {
         try {
             let result = await schema.create(obj);
-            resolve(result);
+            resolve(result.toObject());
         } catch (err) {
             reject(err);
         }
@@ -16,7 +16,7 @@ const findOne = async (schema, filter) => {
     return new Promise(async (resolve, reject) => {
         try {
             let result = await schema.findOne(filter);
-            resolve(result);
+            resolve(result.toObject());
         } catch (err) {
             reject(err);
         }

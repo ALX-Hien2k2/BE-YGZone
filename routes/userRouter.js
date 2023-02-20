@@ -5,13 +5,14 @@ const {
   signIn,
   signUp,
 } = require("../controllers/userController");
+const auth = require('../middlewares/verifyToken');
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', auth, (req, res) => {
   res.send('Hello! This is the get userRouter');
 });
 
-router.post('/', (req, res) => {
+router.post('/', auth, (req, res) => {
   res.send('Hello! This is the post userRouter');
 });
 
