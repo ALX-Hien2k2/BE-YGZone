@@ -1,4 +1,4 @@
-const { validateCheck, validateExistence } = require("../middlewares/validation");
+const { registerValidator, signInValidator } = require("../middlewares/auth");
 const { addOne, findOne } = require("../services/DatabaseServices");
 const User = require("../models/user");
 const bcrypt = require('bcryptjs');
@@ -62,99 +62,50 @@ const bcrypt = require('bcryptjs');
 //   return promise;
 // };
 
-const signIn = async (signInAccount) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const { email, password } = signInAccount;
-
-      // Validate
-      validateCheck(
-        {
-          email: email,
-          password: password,
-
-        },
-        signInAccount);
-
-      // Find user by email
-      const user = await findOne(User, { email: email });
-      if (!user) {
-        reject({
-          status: 401,
-          message: "Invalid email or password"
-        });
-      } else {
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-          reject({
-            status: 401,
-            message: "Invalid email or password"
-          });
-        } else {
-          console.log("Sign in successfully!")
-          resolve(user);
-        }
-      }
-    } catch (err) {
-      console.log("Error message: ", err.message);
-
-      reject({
-        status: 500,
-        message: err.message
-      });
-    }
-  });
-};
-
 const signUp = async (newAccount) => {
   return new Promise(async (resolve, reject) => {
     try {
       // Validate
-      validateCheck(
-        {
+      const { error } = registerValidator(newAccount);
+
+      if (error) {
+        console.log("Error message:", error.details[0].message)
+        reject({
+          status: 422,
+          message: error.details[0].message,
+        });
+      } else {
+        // hash password
+        const salt = bcrypt.genSaltSync(10);
+        const hash = bcrypt.hashSync(newAccount.password, salt);
+
+        // Create new user and add to database
+        const newUser = await addOne(User, {
           email: newAccount.email,
-          password: newAccount.password,
+          password: hash,
           fullname: newAccount.fullname,
           phoneNumber: newAccount.phoneNumber,
-          // avatar: newAccount.avatar,
-          // address: newAccount.address,
-          // bank_account_number: newAccount.bank_account_number,
           userType: newAccount.userType,
-        },
-        newAccount);
+          avatar: newAccount.avatar || "",
+          address: newAccount.address || "",
+          bank_account_number: newAccount.bank_account_number || "",
+        });
 
-      // hash password
-      const salt = bcrypt.genSaltSync(10);
-      const hash = bcrypt.hashSync(newAccount.password, salt);
+        // const newUser = await User.create({
+        //   email: newAccount.email,
+        //   password: hash,
+        //   fullname: newAccount.fullname,
+        //   phoneNumber: newAccount.phoneNumber,
+        //   userType: newAccount.userType,
+        //   avatar: newAccount.avatar || "",
+        //   address: newAccount.address || "",
+        //   bank_account_number: newAccount.bank_account_number || "",
+        // });
 
-      // Create new user and add to database
-      const newUser = await addOne(User, {
-        email: newAccount.email,
-        password: hash,
-        fullname: newAccount.fullname,
-        phoneNumber: newAccount.phoneNumber,
-        userType: newAccount.userType,
-        avatar: newAccount.avatar || "",
-        address: newAccount.address || "",
-        bank_account_number: newAccount.bank_account_number || "",
-      });
-
-      // const newUser = await User.create({
-      //   email: newAccount.email,
-      //   password: hash,
-      //   fullname: newAccount.fullname,
-      //   phoneNumber: newAccount.phoneNumber,
-      //   userType: newAccount.userType,
-      //   avatar: newAccount.avatar || "",
-      //   address: newAccount.address || "",
-      //   bank_account_number: newAccount.bank_account_number || "",
-      // });
-
-      // Return new user's info
-      console.log("Sign up successfully!")
-      resolve(newUser);
-
+        // Return new user's info
+        console.log("Sign up successfully!")
+        resolve(newUser);
+      }
     } catch (err) {
       console.log("Error message:", err.message);
 
@@ -169,6 +120,53 @@ const signUp = async (newAccount) => {
           message: "Unable to create user."
         });
       }
+    }
+  });
+};
+
+const signIn = async (signInAccount) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Validate
+      const { error } = signInValidator(signInAccount);
+
+      if (error) {
+        console.log("Error message:", error.details[0].message)
+        reject({
+          status: 422,
+          message: error.details[0].message,
+        });
+      } else {
+        const { email, password } = signInAccount;
+
+        // Find user by email
+        const user = await findOne(User, { email: email });
+        if (!user) {
+          reject({
+            status: 401,
+            message: "Invalid email or password"
+          });
+        } else {
+          // Check password
+          const isMatch = await bcrypt.compare(password, user.password);
+          if (!isMatch) {
+            reject({
+              status: 401,
+              message: "Invalid email or password"
+            });
+          } else {
+            console.log("Sign in successfully!")
+            resolve(user);
+          }
+        }
+      }
+    } catch (err) {
+      console.log("Error message: ", err.message);
+
+      reject({
+        status: 500,
+        message: err.message
+      });
     }
   });
 };
